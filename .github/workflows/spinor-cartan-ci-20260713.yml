@@ -1,0 +1,44 @@
+name: Spinor Cartan CI 20260713
+
+on:
+  push:
+    paths:
+      - '.github/workflows/spinor-cartan-ci-20260713.yml'
+      - 'tmp/spinor-cartan-ci-status/CartanDieudonneStandalone.lean'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned Lean
+        run: |
+          curl -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain leanprover/lean4:v4.30.0-rc1
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Prepare pinned SpinorLean
+        run: |
+          git clone https://github.com/Arthur742Ramos/SpinorLean.git /tmp/SpinorLean
+          cd /tmp/SpinorLean
+          git checkout 5ed6781e2171dae609c0cc3ae140789de1baece8
+          cp "$GITHUB_WORKSPACE/tmp/spinor-cartan-ci-status/CartanDieudonneStandalone.lean" Spinor/CartanDieudonneStandalone.lean
+          lake update
+      - name: Elaborate and record
+        shell: bash
+        run: |
+          set +e
+          cd /tmp/SpinorLean
+          lake env lean Spinor/CartanDieudonneStandalone.lean > "$GITHUB_WORKSPACE/tmp/spinor-cartan-ci-status/build.log" 2>&1
+          rc=$?
+          printf '%s\n' "$rc" > "$GITHUB_WORKSPACE/tmp/spinor-cartan-ci-status/exit-code.txt"
+          cd "$GITHUB_WORKSPACE"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tmp/spinor-cartan-ci-status/build.log tmp/spinor-cartan-ci-status/exit-code.txt
+          git commit -m "Record Spinor Cartan CI result" || true
+          git push
+          exit 0
