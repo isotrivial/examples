@@ -1,0 +1,1 @@
+Temporary CI status path for the exact SpinorLean Cartan--Dieudonne elaboration. This path will be removed after the check.
